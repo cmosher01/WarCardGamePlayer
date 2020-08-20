@@ -1,0 +1,8 @@
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'org.fusesource.jansi', name: 'jansi', version: 'latest.integration'
+}
