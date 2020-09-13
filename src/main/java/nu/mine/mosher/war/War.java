@@ -5,6 +5,10 @@ package nu.mine.mosher.war;
 import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiConsole;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Random;
+
 import static org.fusesource.jansi.Ansi.ansi;
 
 
@@ -12,15 +16,25 @@ import static org.fusesource.jansi.Ansi.ansi;
 public class War {
     private static final int WAR = 3;
 
-    public static void main(final String... args) {
+    public static void main(final String... args) throws NoSuchAlgorithmException {
         System.setProperty("jansi.force", Boolean.TRUE.toString());
         AnsiConsole.systemInstall();
 
-        final Deck deck = Deck.create();
+        final long seed;
+        if (args.length > 0) {
+            seed = Long.parseLong(args[0]);
+        } else {
+            final SecureRandom boot = SecureRandom.getInstance("NativePRNGNonBlocking");
+            seed = boot.nextLong();
+            System.out.printf("random seed: %d%n", seed);
+        }
+        final Random rnd = new Random(seed);
+
+        final Deck deck = Deck.create(rnd);
         deck.shuffle();
 
-        final Deck x = new Deck();
-        final Deck y = new Deck();
+        final Deck x = new Deck(rnd);
+        final Deck y = new Deck(rnd);
 
         while (deck.any()) {
             x.addToBottom(deck.deal());
@@ -32,7 +46,7 @@ public class War {
         while (x.any() && y.any()) {
             System.out.printf("%6d : ", ++battles);
             printSizes(x, y);
-            battle(x, new Deck(), y, new Deck());
+            battle(x, new Deck(rnd), y, new Deck(rnd));
             System.out.println();
         }
         System.out.print("WINNER : ");
