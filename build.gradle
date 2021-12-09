@@ -1,7 +1,25 @@
-def inc(module) {
-    apply from: "${projectDir}/gradle/${module}.gradle"
+plugins {
+    id 'application'
 }
 
-inc('version')
-inc('project')
-inc('dependencies')
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'org.fusesource.jansi', name: 'jansi', version: 'latest.integration'
+}
+
+application {
+    mainClassName = 'nu.mine.mosher.war.War'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of 17
+    }
+}
+
+group = 'nu.mine.mosher.games'
+
+version = '1.0.1'

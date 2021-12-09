@@ -1,6 +1,6 @@
 # War Card Game Player
 
-Copyright © 2020, Christopher Alan Mosher, Shelton, Connecticut, USA, <cmosher01@gmail.com>.
+Copyright © 2020-2021, Christopher Alan Mosher, Shelton, Connecticut, USA, <cmosher01@gmail.com>.
 
 [![License](https://img.shields.io/github/license/cmosher01/WarCardGamePlayer.svg)](https://www.gnu.org/licenses/gpl.html)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CVSSQ2BWDCKQ2)
@@ -24,9 +24,9 @@ player, equally) as the losing player is able to play.
 * If a player's final card results in a war, a "draw" is declared,
 and each player retrieves their card from this war, and returns
 it back to their deck.
-If there are more than one cards already engaged in the war, then
-the players first swap their sets of cards, and then return them to
-their decks.
+If there are additional cards engaged in the war, then
+the players first swap the sets of engaged cards, then return them
+to their decks.
 
 Example output of a game:
 
