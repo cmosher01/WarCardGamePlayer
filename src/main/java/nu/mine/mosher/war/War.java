@@ -2,33 +2,78 @@ package nu.mine.mosher.war;
 
 
 
-import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiConsole;
 
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Random;
+import java.util.*;
 
-import static org.fusesource.jansi.Ansi.ansi;
+import static nu.mine.mosher.war.BattleFront.*;
 
 
 
 public class War {
-    private static final int WAR = 3;
+    public static final int WAR = 3;
 
-    public static void main(final String... args) throws NoSuchAlgorithmException {
+    public static void main(final String... args) {
         System.setProperty("jansi.force", Boolean.TRUE.toString());
         AnsiConsole.systemInstall();
 
-        final long seed;
+        final WarPrinter printer;
+
         if (args.length > 0) {
-            seed = Long.parseLong(args[0]);
+            if (args[0].equals("-m")) {
+                int t = Integer.parseInt(args[1], 10);
+                if (10 < t) {
+                    printer = new PrinterNull();
+                } else {
+                    printer = new PrinterStdout();
+                }
+                final List<GameStats> rStats = new ArrayList<>(t);
+                while (0 < t--) {
+                    final GameStats stats = play(printer);
+                    rStats.add(stats);
+                }
+
+                System.out.println("-------------------------------------------------");
+                rStats.sort(Comparator.comparingInt(GameStats::battles).reversed());
+                for (int i = 0; i < 3; ++i) {
+                    System.out.printf("%25d : %6d battles\n", rStats.get(i).seed(), rStats.get(i).battles());
+                }
+                System.out.println("......");
+                rStats.sort(Comparator.comparingInt(GameStats::battles));
+                for (int i = 2; i >= 0; --i) {
+                    System.out.printf("%25d : %6d battles\n", rStats.get(i).seed(), rStats.get(i).battles());
+                }
+                System.out.println("-------------------------------------------------");
+                for (int i = 0; i < rStats.getFirst().wars().length; ++i) {
+                    final int j = i;
+                    rStats.sort((a,b) -> Integer.compare(b.wars()[j], a.wars()[j]));
+                    if (0 < rStats.get(i).wars()[i]) {
+                        System.out.printf("%25d : wars %d : %3d\n", rStats.get(i).seed(), i + 1, rStats.get(i).wars()[i]);
+                        System.out.println("-------------------------------------------------");
+                    }
+                }
+            } else {
+                printer = new PrinterStdout();
+                play(Long.parseLong(args[0]), printer);
+            }
         } else {
-            final SecureRandom boot = SecureRandom.getInstance("NativePRNGNonBlocking");
-            seed = boot.nextLong();
-            System.out.printf("random seed: %d%n", seed);
+            printer = new PrinterStdout();
+            play(printer);
         }
-        final Random rnd = new Random(seed);
+    }
+
+    public static GameStats play(final WarPrinter printer) {
+        final SecureRandom boot = createRandom();
+        final long seed = boot.nextLong();
+        return play(seed, printer);
+    }
+
+    public static GameStats play(final long seed, final WarPrinter printer) {
+        final GameStats stats = new GameStats(seed);
+
+        printer.printSeed(stats.seed());
+        final Random rnd = new Random(stats.seed());
 
         final Deck deck = Deck.create(rnd);
         deck.shuffle();
@@ -41,116 +86,76 @@ public class War {
             y.addToBottom(deck.deal());
         }
 
-        printHeader();
-        int battles = 0;
+        printer.printHeader();
         while (x.any() && y.any()) {
-            System.out.printf("%6d : ", ++battles);
-            printSizes(x, y);
-            battle(x, new Deck(rnd), y, new Deck(rnd));
-            System.out.println();
+            stats.incBattles();
+            printer.printSizes(stats.battles(), x, y);
+            battle(x, new Deck(rnd), y, new Deck(rnd), 0, stats, printer);
+            printer.printNewLine();
         }
-        System.out.print("WINNER : ");
-        printSizes(x, y);
 
         if (x.any()) {
-            System.out.print(ansi().fg(Ansi.Color.BLUE ).a("X!        --> X").reset());
+            stats.winner(0);
         } else if (y.any()) {
-            System.out.print(ansi().fg(Ansi.Color.GREEN).a("       !Y --> Y").reset());
+            stats.winner(1);
         }
 
-
-        System.out.println();
-        System.out.flush();
-    }
-
-    private static void printHeader() {
-        System.out.println("ROUND# : X=cards(                 players' standings                  )cards=Y :  battle   --> winner,  or  War[size] cards...");
-        System.out.println("------ : --------------------------------------------------------------------- : --------- --> -------------------------------------------- --> -");
-    }
-
-    private static void printSizes(final Deck x, final Deck y) {
-        System.out.print(ansi().fg(Ansi.Color.BLUE).a(String.format("X=[%02d]=(", x.size())).reset());
-
-        if (x.size() < y.size()) {
-            System.out.print(" ".repeat(26));
-            System.out.print("|");
-            System.out.print(" ".repeat(25-x.size()));
-            System.out.print(ansi().fg(Ansi.Color.WHITE).bg(winnerColor(x.size(), y.size())).a(winnerPlot(x.size(), y.size())).reset());
-            System.out.print(" ".repeat(x.size()));
-        } else if (y.size() < x.size()) {
-            System.out.print(" ".repeat(y.size()));
-            System.out.print(ansi().fg(Ansi.Color.WHITE).bg(winnerColor(x.size(), y.size())).a(winnerPlot(x.size(), y.size())).reset());
-            System.out.print(" ".repeat(25-y.size()));
-            System.out.print("|");
-            System.out.print(" ".repeat(26));
-        } else {
-            System.out.print(" ".repeat(y.size()));
-            System.out.print(ansi().fg(Ansi.Color.WHITE).bg(winnerColor(x.size(), y.size())).a(winnerPlot(x.size(), y.size())).reset());
-            System.out.print(" ".repeat(x.size()));
+        printer.printSizes(0, x, y);
+        if (x.any()) {
+            printer.printWinner(0);
+        } else if (y.any()) {
+            printer.printWinner(1);
         }
+        printer.printNewLine();
 
-        System.out.print(ansi().fg(Ansi.Color.GREEN).a(String.format(")=[%02d]=Y", y.size())).reset());
-        System.out.print(" : ");
+        return stats;
     }
 
-    private static String winnerPlot(final int sizeX, final int sizeY) {
-        return sizeX == sizeY ? "=" : "*";
-    }
-
-    private static Ansi.Color winnerColor(final int sizeX, final int sizeY) {
-        if (sizeX < sizeY) {
-            return Ansi.Color.GREEN;
-        }
-        if (sizeY < sizeX) {
-            return Ansi.Color.BLUE;
-        }
-        return Ansi.Color.BLACK;
-    }
-
-    private static void battle(final Deck x, final Deck bootyX, final Deck y, final Deck bootyY) {
-        deploy(x, bootyX, y, bootyY, "|");
+    private static void battle(final Deck x, final Deck bootyX, final Deck y, final Deck bootyY, final int wars, final GameStats stats, final WarPrinter printer) {
+        deploy(x, bootyX, y, bootyY, FACE_UP, printer);
 
         if (bootyY.last().rank() < bootyX.last().rank()) {
-            System.out.print(ansi().fg(Ansi.Color.BLUE ).a("--> X").reset());
+            printer.printFlagX();
             bootyX.addDeck(bootyY);
             x.addDeck(bootyX);
+            if (0 < wars) {
+                stats.incWar(wars-1);
+            }
         } else if (bootyX.last().rank() < bootyY.last().rank()) {
-            System.out.print(ansi().fg(Ansi.Color.GREEN).a("--> Y").reset());
+            printer.printFlagY();
             bootyY.addDeck(bootyX);
             y.addDeck(bootyY);
+            if (0 < wars) {
+                stats.incWar(wars-1);
+            }
         } else {
-            System.out.print(ansi().fg(Ansi.Color.RED  ).a("--> W").reset());
-            war(x, bootyX, y, bootyY);
+            printer.printFlagWar();
+            war(x, bootyX, y, bootyY, wars+1, stats, printer);
         }
     }
 
-    private static void war(final Deck x, final Deck bootyX, final Deck y, final Deck bootyY) {
+    private static void war(final Deck x, final Deck bootyX, final Deck y, final Deck bootyY, final int wars, final GameStats stats, final WarPrinter printer) {
         final int s = bootySize(x, y);
-        System.out.print(ansi().fg(Ansi.Color.RED).a(String.format("[%d] ", s)).reset());
+        printer.printWarSize(s);
 
         for (int i = 0; i < s; ++i) {
-            deploy(x, bootyX, y, bootyY, "-");
+            deploy(x, bootyX, y, bootyY, FACE_DOWN, printer);
         }
 
         if (!x.any() || !y.any()) {
-            System.out.print(ansi().fg(Ansi.Color.BLACK).a("DRAW").reset());
+            printer.printDraw();
             x.addDeck(bootyY);
             y.addDeck(bootyX);
         } else {
-            battle(x, bootyX, y, bootyY);
+            battle(x, bootyX, y, bootyY, wars, stats, printer);
         }
     }
 
-    private static void deploy(final Deck x, final Deck bootyX, final Deck y, final Deck bootyY, final String battlefront) {
+    private static void deploy(final Deck x, final Deck bootyX, final Deck y, final Deck bootyY, final BattleFront battlefront, final WarPrinter printer) {
         bootyX.addToBottom(x.deal());
-        System.out.print(ansi().fg(Ansi.Color.BLUE ).a(String.format("X>%02d", bootyX.last().rank())).reset());
-
-        System.out.print(battlefront);
-
         bootyY.addToBottom(y.deal());
-        System.out.print(ansi().fg(Ansi.Color.GREEN).a(String.format("%02d<Y", bootyY.last().rank())).reset());
 
-        System.out.print(" ");
+        printer.printDeployment(bootyX, bootyY, battlefront);
     }
 
     private static int bootySize(final Deck x, final Deck y) {
@@ -162,5 +167,17 @@ public class War {
                     Math.min(
                         x.size() - 1,
                         y.size() - 1)));
+    }
+
+
+
+
+
+    private static SecureRandom createRandom() {
+        try {
+            return SecureRandom.getInstance("NativePRNGNonBlocking");
+        } catch (final Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 }
