@@ -6,6 +6,7 @@ import org.fusesource.jansi.AnsiConsole;
 
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.concurrent.*;
 
 import static nu.mine.mosher.war.BattleFront.*;
 
@@ -14,7 +15,7 @@ import static nu.mine.mosher.war.BattleFront.*;
 public class War {
     public static final int WAR = 3;
 
-    public static void main(final String... args) {
+    public static void main(final String... args) throws ExecutionException, InterruptedException {
         System.setProperty("jansi.force", Boolean.TRUE.toString());
         AnsiConsole.systemInstall();
 
@@ -28,11 +29,25 @@ public class War {
                 } else {
                     printer = new PrinterStdout();
                 }
-                final List<GameStats> rStats = new ArrayList<>(t);
-                while (0 < t--) {
-                    final GameStats stats = play(printer);
-                    rStats.add(stats);
+                final List<GameStats> rStats = Collections.synchronizedList(new ArrayList<>(t));
+//                while (0 < t--) {
+//                    final GameStats stats = play(printer);
+//                    rStats.add(stats);
+//                }
+
+
+
+                try (final ExecutorService service = Executors.newFixedThreadPool(4)) {
+                    final List<Future<GameStats>> futures = new ArrayList<>();
+                    for (int i = 0; i < t; ++i) {
+                        futures.add(service.submit(() -> play(printer)));
+                    }
+                    for (final Future<GameStats> f : futures) {
+                        rStats.add(f.get());
+                    }
                 }
+
+
 
                 System.out.println("-------------------------------------------------");
                 rStats.sort(Comparator.comparingInt(GameStats::battles).reversed());
@@ -55,7 +70,7 @@ public class War {
                 }
             } else {
                 printer = new PrinterStdout();
-                play(Long.parseLong(args[0]), printer);
+                play(Long.parseLong(args[0], 10), printer);
             }
         } else {
             printer = new PrinterStdout();
@@ -64,22 +79,21 @@ public class War {
     }
 
     public static GameStats play(final WarPrinter printer) {
-        final SecureRandom boot = createRandom();
-        final long seed = boot.nextLong();
-        return play(seed, printer);
+        return play(generateSeed(), printer);
     }
 
     public static GameStats play(final long seed, final WarPrinter printer) {
         final GameStats stats = new GameStats(seed);
 
         printer.printSeed(stats.seed());
-        final Random rnd = new Random(stats.seed());
+        final CardFactory factory = new CardFactory(stats.seed());
 
-        final Deck deck = Deck.create(rnd);
+        final Deck deck = factory.create();
         deck.shuffle();
+        printer.printDeck(deck);
 
-        final Deck x = new Deck(rnd);
-        final Deck y = new Deck(rnd);
+        final Deck x = factory.empty();
+        final Deck y = factory.empty();
 
         while (deck.any()) {
             x.addToBottom(deck.deal());
@@ -90,7 +104,7 @@ public class War {
         while (x.any() && y.any()) {
             stats.incBattles();
             printer.printSizes(stats.battles(), x, y);
-            battle(x, new Deck(rnd), y, new Deck(rnd), 0, stats, printer);
+            battle(x, factory.empty(), y, factory.empty(), 0, stats, printer);
             printer.printNewLine();
         }
 
@@ -173,11 +187,15 @@ public class War {
 
 
 
-    private static SecureRandom createRandom() {
+    private static long generateSeed() {
         try {
-            return SecureRandom.getInstance("NativePRNGNonBlocking");
+            final SecureRandom boot = SecureRandom.getInstance("NativePRNGNonBlocking");
+            for (int i = 0; i < 1023; ++i) {
+                boot.nextInt();
+            }
+            return boot.nextLong();
         } catch (final Throwable e) {
-            throw new RuntimeException(e);
+            return new Random().nextLong();
         }
     }
 }

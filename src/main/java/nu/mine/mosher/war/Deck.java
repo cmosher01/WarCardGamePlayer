@@ -11,18 +11,8 @@ public class Deck {
     private final LinkedList<Card> cards = new LinkedList<>();
     private final RandomGenerator rnd;
 
-    public Deck(final RandomGenerator rnd) {
+    Deck(final RandomGenerator rnd) {
         this.rnd = rnd;
-    }
-
-    public static Deck create(final RandomGenerator rnd) {
-        final Deck deck = new Deck(rnd);
-        for (int s = 0; s < 4; ++s) {
-            for (int i = 0; i < 13; ++i) {
-                deck.addToBottom(new Card(i + 1));
-            }
-        }
-        return deck;
     }
 
     public void addToBottom(final Card card) {
@@ -54,5 +44,16 @@ public class Deck {
         while (war.any()) {
             addToBottom(war.deal());
         }
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        for (final Card card : this.cards) {
+            sb.append(card);
+            sb.append(' ');
+        }
+        sb.deleteCharAt(sb.length()-1);
+        return sb.toString();
     }
 }

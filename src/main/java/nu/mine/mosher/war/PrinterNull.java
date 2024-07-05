@@ -7,9 +7,10 @@ public class PrinterNull implements WarPrinter {
     public void printFlagY() {}
     public void printFlagX() {}
     public void printDraw() {}
-    public void printWarSize(int s) {}
+    public void printWarSize(final int s) {}
     public void printDeployment(final Deck bootyX, final Deck bootyY, final BattleFront battlefront) {}
     public void printWinner(final int w) {}
     public void printNewLine() {}
     public void printSeed(final long seed) {}
+    public void printDeck(final Deck deck) {}
 }

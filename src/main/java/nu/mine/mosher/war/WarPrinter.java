@@ -6,14 +6,15 @@ import static org.fusesource.jansi.Ansi.ansi;
 
 public interface WarPrinter {
     void printHeader();
-    void printSizes(final int round, final Deck x, final Deck y);
+    void printSizes(int round, Deck x, Deck y);
     void printFlagWar();
     void printFlagY();
     void printFlagX();
     void printDraw();
     void printWarSize(int s);
-    void printDeployment(final Deck bootyX, final Deck bootyY, final BattleFront battlefront);
-    void printWinner(final int w);
+    void printDeployment(Deck x, Deck y, BattleFront battlefront);
+    void printWinner(int w);
     void printNewLine();
-    void printSeed(final long seed);
+    void printSeed(long seed);
+    void printDeck(Deck deck);
 }

@@ -6,15 +6,15 @@ import static org.fusesource.jansi.Ansi.ansi;
 
 public class PrinterStdout implements WarPrinter {
     public void printHeader() {
-        System.out.println("ROUND# : X=cards(                 players' standings                  )cards=Y :  battle   --> winner,  or  War[size] cards...");
-        System.out.println("------ : --------------------------------------------------------------------- : --------- --> -------------------------------------------- --> -");
+        System.out.println("ROUND : X=cards(                 players' standings                  )cards=Y :  battle   --> winner,  or  War[size] cards...");
+        System.out.println("----- : --------------------------------------------------------------------- : --------- --> -------------------------------------------- --> -");
     }
 
     public void printSizes(final int round, final Deck x, final Deck y) {
         if (round <= 0) {
-            System.out.print("WINNER : ");
+            System.out.printf("%5s : ", "FINAL");
         } else {
-            System.out.printf("%6d : ", round);
+            System.out.printf("%5d : ", round);
         }
         System.out.print(ansi().fg(Ansi.Color.BLUE).a(String.format("X=[%02d]=(", x.size())).reset());
 
@@ -60,10 +60,10 @@ public class PrinterStdout implements WarPrinter {
         System.out.print(ansi().fg(Ansi.Color.RED).a(String.format("[%d] ", s)).reset());
     }
 
-    public void printDeployment(final Deck bootyX, final Deck bootyY, final BattleFront battlefront) {
-        System.out.print(ansi().fg(Ansi.Color.BLUE ).a(String.format("X>%02d", bootyX.last().rank())).reset());
+    public void printDeployment(final Deck x, final Deck y, final BattleFront battlefront) {
+        System.out.print(ansi().fg(Ansi.Color.BLUE ).a(String.format("X>%02d", x.last().rank())).reset());
         System.out.print(battlefront);
-        System.out.print(ansi().fg(Ansi.Color.GREEN).a(String.format("%02d<Y", bootyY.last().rank())).reset());
+        System.out.print(ansi().fg(Ansi.Color.GREEN).a(String.format("%02d<Y", y.last().rank())).reset());
         System.out.print(" ");
     }
 
@@ -80,9 +80,14 @@ public class PrinterStdout implements WarPrinter {
     }
 
     public void printSeed(final long seed) {
-        System.out.printf("random seed: %d%n", seed);
+        System.out.printf("seed: %d%n", seed);
     }
 
+    @Override
+    public void printDeck(final Deck deck) {
+        System.out.print("deck: ");
+        System.out.println(deck);
+    }
 
 
     private static String winnerPlot(final int sizeX, final int sizeY) {

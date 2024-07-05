@@ -5,7 +5,7 @@ package nu.mine.mosher.war;
 public class Card {
     private final int rank;
 
-    public Card(final int rank) {
+    Card(final int rank) {
         this.rank = rank;
     }
 
@@ -15,6 +15,17 @@ public class Card {
 
     @Override
     public String toString() {
-        return String.format("%02d", rank);
+        return String.format("%s", display());
+    }
+
+    public String display() {
+        final int v = this.rank+1;
+        return switch (v) {
+            case 14 -> "A";
+            case 13 -> "K";
+            case 12 -> "Q";
+            case 11 -> "J";
+            default -> Integer.toString(v);
+        };
     }
 }
